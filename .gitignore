@@ -1,0 +1,12 @@
+# WAJIB JANGAN DI UPLOAD
+node_modules
+.env
+.env.local
+build
+dist
+.next
+.vercel
+
+# LOG
+npm-debug.log*
+yarn-debug.log*
