@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 export default function IntransitList({ intransits, onEdit, onDelete }) {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
-  const perPage = 4;
+  const perPage = 6;
 
   const filtered = useMemo(() => {
     if (!search) return intransits;
@@ -28,9 +28,13 @@ export default function IntransitList({ intransits, onEdit, onDelete }) {
       </div>
 
       {/* BOX LIST */}
-      <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '20px', paddingTop: '6px' }}>
+      <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', 
+          gap: '16px' 
+        }}>
         {visibleData.map(row => (
-          <div key={row.nosj} style={{ minWidth: '310px', maxWidth: '310px', background: 'white', border: '2.5px solid black', borderRadius: '20px', boxShadow: '6px 6px 0px black', overflow: 'hidden', flexShrink: 0 }}>
+          <div key={row.id} style={{ width: '100%', background: 'white', border: '2.5px solid black', borderRadius: '20px', boxShadow: '6px 6px 0px black', overflow: 'hidden' }}>
             
             <div style={{ background: 'black', color: 'white', padding: '12px 16px', display: 'flex', justifyContent: 'space-between' }}>
               <b style={{ fontSize: '12px' }}>{row.supco}</b>
