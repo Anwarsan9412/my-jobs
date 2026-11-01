@@ -10,6 +10,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const XLSX = require('xlsx');
+
 // const upload = multer({ dest: 'uploads/' });
 
 if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
@@ -22,7 +24,7 @@ const db = mysql.createConnection({
   password: '123456789', // isi password mysql kamu, default xampp kosong
   port: 3307,
   database: 'data',
-  dateStrings: true, // <-- TAMBAH INI WAJIB
+  dateStrings: true, // <-- TAMBAH INI WAJIB  MySQL 2025-11-02 -> Node.js baca jadi 2025-11-01T17:00:00.000Z (jadi objek Date, kena timezone).
   timezone: '+07:00' // <-- TAMBAH INI JUGA
 });
 
@@ -32,30 +34,72 @@ db.connect(err => {
 });
 
 // FUNGSI PARSE TANGGAL ANTI 0000-00-00
-function toMySQLDate(s) {
-  if (!s) return null;
-  s = String(s).trim();
-  if (s === '' || s === '0000-00-00' || s === 'NULL') return null;
+// function toMySQLDate(s) {
+//   if (!s) return null;
+//   s = String(s).trim();
+//   if (s === '' || s === '0000-00-00' || s === 'NULL') return null;
 
-  // Sudah benar 2026-10-25 atau 2026-10-25 13:14:44
+//   // Sudah benar 2026-10-25 atau 2026-10-25 13:14:44
+//   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
+
+//   // Format 6/26/2026 atau 6/26/26 atau 6/26 atau 10/1
+//   if (s.includes('/')) {
+//     const p = s.split('/');
+//     let m = p[0].padStart(2,'0');
+//     let d = p[1].padStart(2,'0');
+//     let y = '2026';
+//     if (p[2]) {
+//       y = p[2].length === 2 ? '20' + p[2] : p[2];
+//       if (y.length === 1) y = '200' + y; // jaga2
+//     }
+//     // validasi bulan 1-12, tanggal 1-31
+//     if (parseInt(m) >=1 && parseInt(m) <=12) {
+//       return `${y}-${m}-${d}`;
+//     }
+//   }
+//   return null; // kalau gak jelas, jadi NULL bukan 0000-00-00
+// }
+
+function toMySQLDate(s) {
+  if (!s) return new Date().toISOString().substring(0,10);
+  s = String(s).trim();
+  if (s === '' || s === '0000-00-00' || s === 'NULL') {
+    return new Date().toISOString().substring(0,10);
+  }
+
+  // Sudah 2026-10-25
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
 
-  // Format 6/26/2026 atau 6/26/26 atau 6/26 atau 10/1
+  // Format DD/MM/YYYY -> 28/10/2026 (DATA KAMU YANG INI)
   if (s.includes('/')) {
-    const p = s.split('/');
-    let m = p[0].padStart(2,'0');
-    let d = p[1].padStart(2,'0');
-    let y = '2026';
-    if (p[2]) {
-      y = p[2].length === 2 ? '20' + p[2] : p[2];
-      if (y.length === 1) y = '200' + y; // jaga2
+    const p = s.split('/').map(x => x.trim());
+    let d, m, y;
+
+    // Cek apakah DD/MM/YYYY atau MM/DD/YYYY
+    // Kalau p[0] > 12, pasti DD/MM/YYYY
+    if (parseInt(p[0]) > 12) {
+      d = p[0]; m = p[1]; y = p[2] || '2026';
+    } else if (parseInt(p[1]) > 12) {
+      // MM/DD/YYYY
+      m = p[0]; d = p[1]; y = p[2] || '2026';
+    } else {
+      // Default anggap DD/MM/YYYY karena data Indonesia
+      d = p[0]; m = p[1]; y = p[2] || '2026';
     }
-    // validasi bulan 1-12, tanggal 1-31
-    if (parseInt(m) >=1 && parseInt(m) <=12) {
+
+    y = y.length === 2 ? '20' + y : y;
+
+    d = d.padStart(2,'0');
+    m = m.padStart(2,'0');
+
+    // Validasi
+    if (parseInt(m) >=1 && parseInt(m) <=12 && parseInt(d) >=1 && parseInt(d) <=31) {
       return `${y}-${m}-${d}`;
     }
   }
-  return null; // kalau gak jelas, jadi NULL bukan 0000-00-00
+  
+  // Fallback biar gak pernah null
+  return new Date().toISOString().substring(0,10);
 }
 
 app.post('/api/intransits/upload', upload.any(), async (req, res) => {
@@ -67,32 +111,65 @@ app.post('/api/intransits/upload', upload.any(), async (req, res) => {
   fs.createReadStream(file.path)
     .pipe(parse({ 
       delimiter: '|', 
-      columns: ['supco','nosj','tglsj','kdtk','kdcab','keter'], // <-- SESUAI SCREENSHOT KAMU
+      columns: ['supco','nosj','tglsj','kdtk','kdcab','keter'],
       from_line: 2, 
-      trim: true 
+      trim: true,
+      relax_column_count: true, // Biar baris yang keternya kosong gak crash
     }))
-    .on('data', d => rows.push(d))
+    .on('data', d => {
+      // AMANKAN - kalau keter kosong dari csv jadi undefined
+      d.keter = (d.keter || '').toString().trim();
+      d.nosj = (d.nosj || '').toString().trim();
+      d.kdtk = (d.kdtk || '').toString().trim();
+      rows.push(d);
+    })
     .on('end', async () => {
-      let inserted=0, updated=0;
-      for (const r of rows) {
-        const tgl = toMySQLDate(r.tglsj);
-        const [exist] = await db.promise().query('SELECT keter FROM intransit WHERE nosj=? AND kdtk=?', [r.nosj, r.kdtk]);
-        
-        if (exist.length > 0) {
-          if (exist[0].keter !== r.keter) {
-            await db.promise().query('UPDATE intransit SET keter=? WHERE nosj=? AND kdtk=?', [r.keter, r.nosj, r.kdtk]);
-            updated++;
+      let inserted=0, updated=0, skipped=0;
+      try {
+        for (const r of rows) {
+          if (!r.nosj || !r.kdtk) { skipped++; continue; } // skip baris cacat
+
+          const tgl = toMySQLDate(r.tglsj);
+          const [exist] = await db.promise().query('SELECT keter FROM intransit WHERE nosj=? AND kdtk=?', [r.nosj, r.kdtk]);
+          
+          if (exist.length > 0) {
+            const dbKeter = (exist[0].keter || '').toString().trim();
+            const uploadKeter = (r.keter || '').toString().trim();
+
+            // LOGIC BARU:
+            // 1. Kalau upload kosong -> JANGAN UPDATE, skip
+            // 2. Kalau upload ada isi dan beda dengan DB -> baru update
+            if (!uploadKeter) {
+              skipped++; // ini yang kamu mau, data lama tetap
+              continue;
+            }
+
+            if (dbKeter !== uploadKeter) {
+              await db.promise().query('UPDATE intransit SET keter=? WHERE nosj=? AND kdtk=?', [uploadKeter, r.nosj, r.kdtk]);
+              updated++;
+            } else {
+              skipped++; // sama persis, gak perlu update
+            }
+
+          } else {
+            await db.promise().query(
+              'INSERT INTO intransit (supco,nosj,tglsj,kdtk,kdcab,keter) VALUES (?,?,?,?,?,?)',
+              [r.supco, r.nosj, tgl, r.kdtk, r.kdcab, (r.keter || '')]
+            );
+            inserted++;
           }
-        } else {
-          await db.promise().query(
-            'INSERT INTO intransit (supco,nosj,tglsj,kdtk,kdcab,keter) VALUES (?,?,?,?,?,?)',
-            [r.supco, r.nosj, tgl, r.kdtk, r.kdcab, r.keter]
-          );
-          inserted++;
         }
+        fs.unlinkSync(file.path);
+        res.json({message:'OK', inserted, updated, skipped, total: rows.length});
+      } catch (err) {
+        console.error(err);
+        if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+        res.status(500).json({message: err.message});
       }
-      fs.unlinkSync(file.path);
-      res.json({message:'OK', inserted, updated, total: rows.length});
+    })
+    .on('error', (err) => {
+      if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+      res.status(500).json({message: 'CSV Error: ' + err.message});
     });
 });
 
@@ -130,6 +207,22 @@ app.delete('/api/intransits/:id', (req, res) => {
     if(err) return res.status(500).json(err);
     res.json({ message: 'Deleted' });
   });
+});
+
+
+
+
+app.get('/api/intransits/export', async (req, res) => {
+  try {
+    const [rows] = await db.promise().query('SELECT supco,nosj,tglsj,kdtk,kdcab,keter FROM intransit ORDER BY tglsj ASC');
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "INTRANSIT");
+    const buf = XLSX.write(wb, {type:'buffer', bookType:'xlsx'});
+    res.setHeader('Content-Disposition', 'attachment; filename=INTRANSIT.xlsx');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buf);
+  } catch(e){ res.status(500).json({message:e.message}) }
 });
 
 

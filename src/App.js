@@ -4,9 +4,10 @@ import IntransitList from "./components/IntransitListFinal";
 import IntransitForm from "./components/IntransitForm";
 import { useIntransits } from "./hooks/useIntransits";
 import UploadIntransit from "./components/intransitUpload";
+import Coba from "./components/Coba";
 
 export default function App() {
-  const {intransits, editing,setEditing,remove,save, handleUpload} = useIntransits();
+  const {intransits, editing,setEditing,remove,save, handleUpload,handleExportExcel} = useIntransits();
 
   return (
   <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'sans-serif' }}>
@@ -29,6 +30,12 @@ export default function App() {
               ➕ TAMBAH DATA
             </button>
           )}
+           <button 
+      onClick={handleExportExcel}
+      style={{ background: '#22c55e', color: 'white', border: '2.5px solid black', borderRadius: '50px', padding: '10px 18px', fontWeight: '900', fontSize: '12px', boxShadow: '4px 4px 0px black', cursor: 'pointer' }}
+    >
+      📊 EXPORT EXCEL
+    </button>
         </div>
 
         <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#9ca3af', background: '#f3f4f6', padding: '6px 12px', borderRadius: '50px', border: '2px solid black' }}>
@@ -43,7 +50,8 @@ export default function App() {
         onCancel={() => setEditing(null)} 
       />
 
-      <IntransitList intransits={intransits} onEdit={setEditing} onDelete={remove} />
+      <IntransitList intransits={intransits} onEdit={setEditing} onDelete={remove} handleExportExcel={handleExportExcel } />
+      <Coba />
     </div>
 
   );
