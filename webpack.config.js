@@ -10,6 +10,7 @@ module.exports = {
   },
   devServer: {
     static: path.join(__dirname, 'dist'),
+    historyApiFallback: true,
     port: 3000,
     hot: true
   },

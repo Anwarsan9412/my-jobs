@@ -12,7 +12,7 @@ import Intransit from "./components/pages/Intransit";
 
 
 export default function App() {
-  const {intransits, editing,setEditing,remove,save, handleUpload,handleExportExcel} = useIntransits();
+  const {intransits, setIntransits,editing,setEditing,remove,save, handleUpload,handleExportExcel} = useIntransits();
 
  return (
     <Routes>
@@ -29,6 +29,7 @@ export default function App() {
       } />
       <Route path="/about" element={<About />} />
       <Route path="/intransit" element={ <Intransit  intransits={intransits} 
+          setIntransits={setIntransits}
           editing={editing} 
           setEditing={setEditing}
           handleUpload={handleUpload}
@@ -37,6 +38,7 @@ export default function App() {
           remove={remove} />} />
     </Routes>
   );
+
 
 
 

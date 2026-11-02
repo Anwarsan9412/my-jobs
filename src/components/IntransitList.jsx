@@ -1,21 +1,36 @@
 import { useState, useMemo } from 'react';
 
-const IntransitList = ({ intransits = [], onEdit, onDelete }) => {
+const IntransitList = ({ intransits = [], onEdit, onDelete, editing,handleUpload}) => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const perPage = 10;
 
   // 1. SEARCH FILTER
-  const filtered = useMemo(() => {
-    if (!search) return intransits;
-    const s = search.toLowerCase();
-    return intransits.filter(item => 
-      (item.supco?.toLowerCase().includes(s)) ||
-      (item.nosj?.toLowerCase().includes(s)) ||
-      (item.kdtk?.toLowerCase().includes(s)) ||
-      (item.kdcab?.toLowerCase().includes(s))
+const filtered = useMemo(() => {
+  if (!search) return intransits;
+  
+  const keywords = search.split(/[,;\n\s]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+  
+  return intransits.filter(item => {
+    const nosj = (item.nosj || '').toLowerCase();
+    const kdtk = (item.kdtk || '').toLowerCase();
+    const keter = (item.keter || '').toLowerCase();
+    const supco = (item.supco || '').toLowerCase();
+    const kdcab = (item.kdcab || '').toLowerCase();
+    
+    return keywords.some(k => 
+      nosj.includes(k) || 
+      kdtk.includes(k) ||
+      keter.includes(k) ||
+      supco.includes(k) ||
+      kdcab.includes(k) ||
+      nosj === k || 
+      kdtk === k || 
+      keter === k
     );
-  }, [search, intransits]);
+  });
+}, [search, intransits]);
+
 
   // 2. PAGINATION
   const totalPage = Math.ceil(filtered.length / perPage);
@@ -41,7 +56,7 @@ const IntransitList = ({ intransits = [], onEdit, onDelete }) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
         <input 
           type="text"
-          placeholder="🔍 SEARCH SUPCO / NO SJ / KDTK..."
+          placeholder="🔍 SEARCH 2610290062,2610290346..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           style={{ flex: 1, minWidth: '200px', border: '2.5px #9ca3af black', borderRadius: '50px', padding: '10px 16px', fontWeight: '700', outline: 'none' }}
@@ -50,6 +65,18 @@ const IntransitList = ({ intransits = [], onEdit, onDelete }) => {
           <span style={{ background: '#f3f4f6', border: '2px #9ca3af black', borderRadius: '50px', padding: '10px 16px', fontWeight: '900', fontSize: '11px' }}>
             TOTAL: {filtered.length}
           </span>
+            <label style={{ background: 'white', color: 'black', border: '2.5px solid black', borderRadius: '50px', padding: '10px 18px', fontWeight: '900', boxShadow: '4px 4px 0px black', cursor: 'pointer' }}>
+            📤 UPLOAD CSV
+            <input type="file" accept=".csv" hidden onChange={handleUpload} />
+          </label>
+          {!editing && (
+            <button 
+              onClick={() => onEdit({ supco: '', tglsj: new Date().toISOString().substring(0,10), kdtk: '', nosj: '', kdcab: '', keter: '' })} 
+              style={{ background: 'white', color: 'black', border: '2.5px solid black', borderRadius: '50px', padding: '10px 18px', fontWeight: '900', boxShadow: '4px 4px 0px black', cursor: 'pointer' }}
+            >
+              ➕ TAMBAH DATA
+            </button>
+          )}
           <button 
             onClick={handleExportCSV}
             style={{ background: '#303231', color: 'white', border: '2.5px #9ca3af black', borderRadius: '50px', padding: '10px 16px', fontWeight: '900', fontSize: '11px', boxShadow: '3px 3px 0px black', cursor: 'pointer' }}
@@ -82,7 +109,7 @@ const IntransitList = ({ intransits = [], onEdit, onDelete }) => {
               <div style={{ flex: 1 }}>{item.keter}</div>
               <div style={{ width: '120px', display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                 <button onClick={() => onEdit(item)} style={{ background: 'white', border: '2px solid #9ca3af', borderRadius: '50px', padding: '4px 10px', fontWeight: '900', fontSize: '10px', cursor: 'pointer' }}>EDIT</button>
-                <button onClick={() => onDelete(item)} style={{ background: 'black', color: 'white', border: '2px solid #9ca3af', borderRadius: '50px', padding: '4px 10px', fontWeight: '900', fontSize: '10px', cursor: 'pointer' }}>HAPUS</button>
+                <button  onClick={() => { if(window.confirm(`Hapus ${item.nosj} ?`)) onDelete(item.id) }}  style={{ background: 'black', color: 'white', border: '2px solid #9ca3af', borderRadius: '50px', padding: '4px 10px', fontWeight: '900', fontSize: '10px', cursor: 'pointer' }}>HAPUS</button>
               </div>
             </div>
           ))
