@@ -8,6 +8,7 @@ import Home from './components/pages/Home'
 import { useIntransits } from "./hooks/useIntransits";
 import UploadIntransit from "./components/intransitUpload";
 import Coba from "./components/Coba";
+import Intransit from "./components/pages/Intransit";
 
 
 export default function App() {
@@ -27,6 +28,13 @@ export default function App() {
         />
       } />
       <Route path="/about" element={<About />} />
+      <Route path="/intransit" element={ <Intransit  intransits={intransits} 
+          editing={editing} 
+          setEditing={setEditing}
+          handleUpload={handleUpload}
+          handleExportExcel={handleExportExcel}
+          save={save}
+          remove={remove} />} />
     </Routes>
   );
 

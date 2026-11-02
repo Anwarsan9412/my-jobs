@@ -5,7 +5,7 @@ import { Link, useLocation } from 'react-router-dom';
 const Header = () => {
   const location = useLocation();
   const isHome = location.pathname === '/';
-  const isAbout = location.pathname === '/about';
+  const isAbout = location.pathname === '/intransit';
 
     const baseStyle = {
     border: '2.5px solid black',
@@ -30,14 +30,14 @@ return (
         HOME
       </Link>
       <Link 
-        to="/about" 
+        to="/intransit" 
         style={{ 
           ...baseStyle, 
           background: isAbout ? 'black' : 'white', 
           color: isAbout ? 'white' : 'black' 
         }}
       >
-        ABOUT
+        INTRANSIT
       </Link>
     </div>
   );
