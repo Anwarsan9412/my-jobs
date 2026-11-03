@@ -13,20 +13,29 @@ export function useIntransits(){
 
     useEffect(()=> {load();},[]);
 
-    const handleUpload = async (e) => {
+   const handleUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         try {
-        const result = await intransitServices.upload(file);
-        alert(`Sukses! Baru: ${result.inserted}, Update: ${result.updated}`);
-        await load(); // refresh data
+            const result = await intransitServices.upload(file);
+            
+            // PASTIKAN ADA LET DISINI
+            let msg = `Sukses! Baru: ${result.inserted}, Update: ${result.updated}, Skip: ${result.skipped}`;
+
+            if (result.errors && result.errors.length > 0) {
+            msg += `\n\nDetail error:\n` + result.errors.join('\n');
+            }
+
+            alert(msg);
+            await load();
         } catch (err) {
-        alert('Gagal: ' + (err.response?.data?.message || err.message));
+            const errorMsg = err.response?.data?.message || err.message;
+            alert('Gagal: ' + errorMsg);
         }
         e.target.value = null;
     };
 
-    const handleExportExcel = () => {
+  const handleExportExcel = () => {
   const dataToExport = intransits.length > 0 ? intransits : intransits;
   
   if (dataToExport.length === 0) {

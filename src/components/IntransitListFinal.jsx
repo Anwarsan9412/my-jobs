@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 
-export default function IntransitList({ intransits, onEdit, onDelete }) {
+export default function IntransitList({ intransits, onEdit, onDelete,editing,handleUpload }) {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const perPage = 6;
@@ -14,18 +14,57 @@ export default function IntransitList({ intransits, onEdit, onDelete }) {
   const totalPage = Math.ceil(filtered.length / perPage) || 1;
   const visibleData = filtered.slice(page * perPage, page * perPage + perPage);
 
+    // 3. EXPORT CSV
+  const handleExportCSV = () => {
+    const header = ['supco','tglsj','kdtk','nosj','kdcab','keter'];
+    const rows = filtered.map(row => header.map(h => `"${row[h] || ''}"`).join(','));
+    const csv = [header.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `intransit_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  };
+
   return (
-    <div style={{ marginTop: '20px' }}>
+ <div style={{ fontFamily: 'sans-serif' }}>
       
-      {/* SEARCH */}
-      <div style={{ marginBottom: '16px' }}>
+      {/* TOP BAR - SEARCH + EXPORT */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
         <input 
-          value={search} 
-          onChange={e => { setSearch(e.target.value); setPage(0); }} 
-          placeholder="🔍 Cari nosj / toko / supco..." 
-          style={{ width: '100%', padding: '12px 16px', border: '2.5px solid black', borderRadius: '16px', fontWeight: 'bold', boxShadow: '4px 4px 0px black', outline: 'none' }} 
+          type="text"
+          placeholder="🔍 SEARCH 2610290062,2610290346..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          style={{ flex: 1, minWidth: '200px', border: '2.5px #9ca3af black', borderRadius: '50px', padding: '10px 16px', fontWeight: '700', outline: 'none' }}
         />
+
+      <div style={{ display: 'flex', gap: '8px' }}>
+          <span style={{ background: '#f3f4f6', border: '2px #9ca3af black', borderRadius: '50px', padding: '10px 16px', fontWeight: '900', fontSize: '11px' }}>
+            TOTAL: {filtered.length}
+          </span>
+            <label style={{ background: 'white', color: 'black', border: '2.5px solid black', borderRadius: '50px', padding: '10px 18px', fontWeight: '900', boxShadow: '4px 4px 0px black', cursor: 'pointer' }}>
+            📤 UPLOAD CSV
+            <input type="file" accept=".csv" hidden onChange={handleUpload} />
+          </label>
+          {!editing && (
+            <button 
+              onClick={() => onEdit({ supco: '', tglsj: new Date().toISOString().substring(0,10), kdtk: '', nosj: '', kdcab: '', keter: '' })} 
+              style={{ background: 'white', color: 'black', border: '2.5px solid black', borderRadius: '50px', padding: '10px 18px', fontWeight: '900', boxShadow: '4px 4px 0px black', cursor: 'pointer' }}
+            >
+              ➕ TAMBAH DATA
+            </button>
+          )}
+          <button 
+            onClick={handleExportCSV}
+            style={{ background: 'white', color: 'black', border: '2.5px solid black', borderRadius: '50px', padding: '10px 18px', fontWeight: '900', fontSize: '11px', boxShadow: '4px 4px 0px black', cursor: 'pointer' }}
+          >
+            📊 EXPORT EXCEL
+          </button>
+        </div>
       </div>
+
 
       {/* BOX LIST */}
       <div style={{ 

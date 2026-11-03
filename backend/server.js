@@ -33,74 +33,56 @@ db.connect(err => {
   console.log('MySQL Connected!');
 });
 
-// FUNGSI PARSE TANGGAL ANTI 0000-00-00
-// function toMySQLDate(s) {
-//   if (!s) return null;
-//   s = String(s).trim();
-//   if (s === '' || s === '0000-00-00' || s === 'NULL') return null;
 
-//   // Sudah benar 2026-10-25 atau 2026-10-25 13:14:44
+// function toMySQLDate(s) {
+//   if (!s) return new Date().toISOString().substring(0,10);
+//   s = String(s).trim();
+//   if (s === '' || s === '0000-00-00' || s === 'NULL') {
+//     return new Date().toISOString().substring(0,10);
+//   }
+
+//   // Sudah 2026-10-25
 //   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
 
-//   // Format 6/26/2026 atau 6/26/26 atau 6/26 atau 10/1
+//   // Format DD/MM/YYYY -> 28/10/2026 (DATA KAMU YANG INI)
 //   if (s.includes('/')) {
-//     const p = s.split('/');
-//     let m = p[0].padStart(2,'0');
-//     let d = p[1].padStart(2,'0');
-//     let y = '2026';
-//     if (p[2]) {
-//       y = p[2].length === 2 ? '20' + p[2] : p[2];
-//       if (y.length === 1) y = '200' + y; // jaga2
+//     const p = s.split('/').map(x => x.trim());
+//     let d, m, y;
+
+//     // Cek apakah DD/MM/YYYY atau MM/DD/YYYY
+//     // Kalau p[0] > 12, pasti DD/MM/YYYY
+//     if (parseInt(p[0]) > 12) {
+//       d = p[0]; m = p[1]; y = p[2] || '2026';
+//     } else if (parseInt(p[1]) > 12) {
+//       // MM/DD/YYYY
+//       m = p[0]; d = p[1]; y = p[2] || '2026';
+//     } else {
+//       // Default anggap DD/MM/YYYY karena data Indonesia
+//       d = p[0]; m = p[1]; y = p[2] || '2026';
 //     }
-//     // validasi bulan 1-12, tanggal 1-31
-//     if (parseInt(m) >=1 && parseInt(m) <=12) {
+
+//     y = y.length === 2 ? '20' + y : y;
+
+//     d = d.padStart(2,'0');
+//     m = m.padStart(2,'0');
+
+//     // Validasi
+//     if (parseInt(m) >=1 && parseInt(m) <=12 && parseInt(d) >=1 && parseInt(d) <=31) {
 //       return `${y}-${m}-${d}`;
 //     }
 //   }
-//   return null; // kalau gak jelas, jadi NULL bukan 0000-00-00
-// }
-
-function toMySQLDate(s) {
-  if (!s) return new Date().toISOString().substring(0,10);
-  s = String(s).trim();
-  if (s === '' || s === '0000-00-00' || s === 'NULL') {
-    return new Date().toISOString().substring(0,10);
-  }
-
-  // Sudah 2026-10-25
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
-
-  // Format DD/MM/YYYY -> 28/10/2026 (DATA KAMU YANG INI)
-  if (s.includes('/')) {
-    const p = s.split('/').map(x => x.trim());
-    let d, m, y;
-
-    // Cek apakah DD/MM/YYYY atau MM/DD/YYYY
-    // Kalau p[0] > 12, pasti DD/MM/YYYY
-    if (parseInt(p[0]) > 12) {
-      d = p[0]; m = p[1]; y = p[2] || '2026';
-    } else if (parseInt(p[1]) > 12) {
-      // MM/DD/YYYY
-      m = p[0]; d = p[1]; y = p[2] || '2026';
-    } else {
-      // Default anggap DD/MM/YYYY karena data Indonesia
-      d = p[0]; m = p[1]; y = p[2] || '2026';
-    }
-
-    y = y.length === 2 ? '20' + y : y;
-
-    d = d.padStart(2,'0');
-    m = m.padStart(2,'0');
-
-    // Validasi
-    if (parseInt(m) >=1 && parseInt(m) <=12 && parseInt(d) >=1 && parseInt(d) <=31) {
-      return `${y}-${m}-${d}`;
-    }
-  }
   
-  // Fallback biar gak pernah null
-  return new Date().toISOString().substring(0,10);
+//   // Fallback biar gak pernah null
+//   return new Date().toISOString().substring(0,10);
+// }
+function formatTglStrict(tglRaw) {
+  const t = String(tglRaw).trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) {
+    throw new Error(`Format tglsj harus yyyy-MM-dd, dapat: ${t}`);
+  }
+  return t;
 }
+
 
 app.post('/api/intransits/upload', upload.any(), async (req, res) => {
   if (!req.files || req.files.length === 0) return res.status(400).json({message:'File kosong'});
@@ -129,7 +111,15 @@ app.post('/api/intransits/upload', upload.any(), async (req, res) => {
         for (const r of rows) {
           if (!r.nosj || !r.kdtk) { skipped++; continue; } // skip baris cacat
 
-          const tgl = toMySQLDate(r.tglsj);
+          // const tgl = toMySQLDate(r.tglsj);
+          try {
+              tgl = formatTglStrict(r.tglsj);
+            } catch (e) {
+              console.log(`Baris nosj ${r.nosj} skip karena ${e.message}`);
+              skipped++;
+              continue; // <-- skip baris ini
+          }
+
           const [exist] = await db.promise().query('SELECT keter FROM intransit WHERE nosj=? AND kdtk=?', [r.nosj, r.kdtk]);
           
           if (exist.length > 0) {
@@ -176,7 +166,7 @@ app.post('/api/intransits/upload', upload.any(), async (req, res) => {
 
 
 app.get('/api/intransits', (req, res) => {
-  db.query("SELECT id, supco,nosj, DATE_FORMAT(tglsj, '%Y-%m-%d') as tglsj, kdtk, kdcab, keter,created_at,updated_at FROM intransit", (err, results) => {
+  db.query("SELECT id, supco,nosj, DATE_FORMAT(tglsj, '%Y-%m-%d') as tglsj, kdtk, kdcab, keter,created_at,updated_at FROM intransit order by tglsj desc ", (err, results) => {
     if(err) return res.status(500).json(err);
     res.json(results);
   });

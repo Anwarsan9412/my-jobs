@@ -79,9 +79,9 @@ const filtered = useMemo(() => {
           )}
           <button 
             onClick={handleExportCSV}
-            style={{ background: '#303231', color: 'white', border: '2.5px #9ca3af black', borderRadius: '50px', padding: '10px 16px', fontWeight: '900', fontSize: '11px', boxShadow: '3px 3px 0px black', cursor: 'pointer' }}
+            style={{ background: 'white', color: 'black', border: '2.5px solid black', borderRadius: '50px', padding: '10px 18px', fontWeight: '900', fontSize: '11px', boxShadow: '4px 4px 0px black', cursor: 'pointer' }}
           >
-            📥 EXPORT CSV
+            📊 EXPORT EXCEL
           </button>
         </div>
       </div>
@@ -93,6 +93,7 @@ const filtered = useMemo(() => {
           <div style={{ flex: 1, color: 'white' }}>TGL SJ</div>
           <div style={{ flex: 1, color: 'white' }}>KDTK</div>
           <div style={{ flex: 1, color: 'white'}}>NO SJ</div>
+          <div style={{ flex: 1, color: 'white'}}>KDCAB</div>
           <div style={{ flex: 1, color: 'white'}}>KETERANGAN</div>
           <div style={{ width: '120px', textAlign: 'right' }}>AKSI</div>
         </div>
@@ -106,6 +107,7 @@ const filtered = useMemo(() => {
               <div style={{ flex: 1 }}>{item.tglsj}</div>
               <div style={{ flex: 1 }}>{item.kdtk}</div>
               <div style={{ flex: 1 }}>{item.nosj}</div>
+              <div style={{ flex: 1 }}>{item.kdcab}</div>
               <div style={{ flex: 1 }}>{item.keter}</div>
               <div style={{ width: '120px', display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                 <button onClick={() => onEdit(item)} style={{ background: 'white', border: '2px solid #9ca3af', borderRadius: '50px', padding: '4px 10px', fontWeight: '900', fontSize: '10px', cursor: 'pointer' }}>EDIT</button>
