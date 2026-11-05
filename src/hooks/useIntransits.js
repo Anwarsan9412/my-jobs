@@ -1,17 +1,40 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect,useCallback } from "react";
 import { intransitServices } from "../services/intransitServices";
 import * as XLSX from 'xlsx';
 
 export function useIntransits(){
     const [intransits, setIntransits] = useState([]);
     const [editing, setEditing] = useState(null);
+    const [search, setSearch] = useState('');
+    const [filterTanggal, setFilterTanggal] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const load = async()=>{
-        const data = await intransitServices.getAll()
-        setIntransits(data);
-    };
+    // const load = async()=>{
+    //     const data = await intransitServices.getAll()
+    //     setIntransits(data);
+    // };
 
-    useEffect(()=> {load();},[]);
+    // useEffect(()=> {load();},[]);
+    // LOAD + KIRIM SEARCH & TANGGAL KE BACKEND
+    const load = useCallback(async () => {
+        try {
+            setLoading(true);
+            const data = await intransitServices.getAll({
+                search: search,
+                tglsj: filterTanggal
+            });
+            setIntransits(data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    }, [search, filterTanggal]);
+
+    // AUTO LOAD PAS SEARCH / TANGGAL BERUBAH
+    useEffect(() => { load(); }, [load]);
+
+    
 
    const handleUpload = async (e) => {
         const file = e.target.files[0];
@@ -123,7 +146,17 @@ export function useIntransits(){
         load();
       };
 
-    return {intransits, editing, setEditing, save,remove,handleUpload, handleExportExcel}
-
-
+    return {intransits, 
+        editing, 
+        setEditing,        
+        search,
+        setSearch,
+        filterTanggal,
+        setFilterTanggal,
+        loading,
+        load, 
+        save,
+        remove,
+        handleUpload, 
+        handleExportExcel}
 } 

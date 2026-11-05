@@ -172,13 +172,33 @@ app.get('/api/intransits', (req, res) => {
   });
 });
 
-app.post('/api/intransits', (req, res) => {
-  const { supco,nosj, tglsj, kdtk,  kdcab, keter } = req.body;
-  const cleanTgl = tglsj ? tglsj.substring(0, 10) : null;
-  db.query('INSERT INTO intransit (supco,nosj, tglsj, kdtk,  kdcab, keter) VALUES (?, ?, ?, ?, ?, ?)', [supco, nosj,cleanTgl, kdtk,  kdcab, keter], (err, result) => {
-    if(err) return res.status(500).json(err);
-    res.json({ id: result.insertId, supco, nosj, tglsj, kdtk, kdcab, keter });
-  });
+// app.post('/api/intransits', (req, res) => {
+//   const { supco,nosj, tglsj, kdtk,  kdcab, keter } = req.body;
+//   const cleanTgl = tglsj ? tglsj.substring(0, 10) : null;
+//   db.query('INSERT INTO intransit (supco,nosj, tglsj, kdtk,  kdcab, keter) VALUES (?, ?, ?, ?, ?, ?)', [supco, nosj,cleanTgl, kdtk,  kdcab, keter], (err, result) => {
+//     if(err) return res.status(500).json(err);
+//     res.json({ id: result.insertId, supco, nosj, tglsj, kdtk, kdcab, keter });
+//   });
+// });
+// backend - routes/intransit.js
+app.get('/api/intransits', async (req, res) => {
+  const { search, tglsj } = req.query;
+  let sql = 'SELECT * FROM intransit WHERE 1=1';
+  let params = [];
+
+  if (search) {
+    sql += ' AND (nosj LIKE ? OR kdtk LIKE ?)';
+    params.push(`%${search}%`, `%${search}%`);
+  }
+
+  if (tglsj) {
+    sql += ` AND DATE_FORMAT(tglsj, '%Y-%m') = ?`;
+    params.push(tglsj); // format yyyy-MM-dd
+  }
+
+  sql += ' ORDER BY tglsj DESC';
+  const [rows] = await db.promise().query(sql, params);
+  res.json(rows);
 });
 
 app.put('/api/intransits/:id', (req, res) => {

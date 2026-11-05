@@ -1,35 +1,75 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
-const IntransitList = ({ intransits = [], onEdit, onDelete, editing,handleUpload}) => {
-  const [search, setSearch] = useState('');
+const IntransitList = ({ intransits = [], onEdit, onDelete, editing,handleUpload,search, setSearch, filterTanggal, setFilterTanggal}) => {
+  // const [search, setSearch] = useState('');
+  // const [filterTanggal, setFilterTanggal] = useState(''); 
   const [page, setPage] = useState(1);
   const perPage = 10;
 
   // 1. SEARCH FILTER
-const filtered = useMemo(() => {
-  if (!search) return intransits;
-  
-  const keywords = search.split(/[,;\n\s]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
-  
-  return intransits.filter(item => {
-    const nosj = (item.nosj || '').toLowerCase();
-    const kdtk = (item.kdtk || '').toLowerCase();
-    const keter = (item.keter || '').toLowerCase();
-    const supco = (item.supco || '').toLowerCase();
-    const kdcab = (item.kdcab || '').toLowerCase();
-    
-    return keywords.some(k => 
-      nosj.includes(k) || 
-      kdtk.includes(k) ||
-      keter.includes(k) ||
-      supco.includes(k) ||
-      kdcab.includes(k) ||
-      nosj === k || 
-      kdtk === k || 
-      keter === k
-    );
-  });
-}, [search, intransits]);
+// const filtered = useMemo(() => {
+//   if (!search) return intransits;
+//   const keywords = search.split(/[,;\n\s]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+//   return intransits.filter(item => {
+//     const nosj = (item.nosj || '').toLowerCase();
+//     const kdtk = (item.kdtk || '').toLowerCase();
+//     const keter = (item.keter || '').toLowerCase();
+//     const supco = (item.supco || '').toLowerCase();
+//     const kdcab = (item.kdcab || '').toLowerCase();
+//     return keywords.some(k => 
+//       nosj.includes(k) || 
+//       kdtk.includes(k) ||
+//       keter.includes(k) ||
+//       supco.includes(k) ||
+//       kdcab.includes(k) ||
+//       nosj === k || 
+//       kdtk === k || 
+//       keter === k
+//     );
+//   });
+// }, [search, intransits]);
+// 1. SEARCH + TANGGAL FILTER
+
+console.log(filterTanggal);
+
+  const filtered = useMemo(() => {
+    let data = intransits;
+
+    // FILTER TANGGAL DULU
+    if (filterTanggal) {
+      data = data.filter(item => {
+        if (!item.tglsj) return false;
+        // tglsj dari backend bisa "2026-11-05T00:00:00.000Z" / "2026-11-05"
+        const tglItem = String(item.tglsj).slice(0, 7);
+        return tglItem === filterTanggal;
+      });
+    }
+
+    // FILTER SEARCH
+    if (search) {
+      const keywords = search.split(/[,;\n\s]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+      data = data.filter(item => {
+        const nosj = (item.nosj || '').toLowerCase();
+        const kdtk = (item.kdtk || '').toLowerCase();
+        const keter = (item.keter || '').toLowerCase();
+        const supco = (item.supco || '').toLowerCase();
+        const kdcab = (item.kdcab || '').toLowerCase();
+        return keywords.some(k => 
+          nosj.includes(k) || 
+          kdtk.includes(k) ||
+          keter.includes(k) ||
+          supco.includes(k) ||
+          kdcab.includes(k) ||
+          nosj === k || 
+          kdtk === k || 
+          keter === k
+        );
+      });
+    }
+
+    return data;
+  }, [search, filterTanggal, intransits]);
+
 
 
   // 2. PAGINATION
@@ -61,6 +101,15 @@ const filtered = useMemo(() => {
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           style={{ flex: 1, minWidth: '200px', border: '2.5px #9ca3af black', borderRadius: '50px', padding: '10px 16px', fontWeight: '700', outline: 'none' }}
         />
+          {/* MENU TANGGAL DI SEBELAH SEARCH */}
+        <input
+          type="month" // <-- dari "date" jadi "month"
+          value={filterTanggal || ''}
+          onChange={(e) => setFilterTanggal(e.target.value)}
+          style={{ minWidth: '200px', borderRadius: '10px', border: '2.5px #9ca3af black',padding: '10px 16px',  outline: 'none' }}
+        />
+        <button onClick={() => { setSearch(''); setFilterTanggal(''); }}>Reset</button>
+         
         <div style={{ display: 'flex', gap: '8px' }}>
           <span style={{ background: '#f3f4f6', border: '2px #9ca3af black', borderRadius: '50px', padding: '10px 16px', fontWeight: '900', fontSize: '11px' }}>
             TOTAL: {filtered.length}
