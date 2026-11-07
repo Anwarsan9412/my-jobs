@@ -6,7 +6,9 @@ export function useIntransits(){
     const [intransits, setIntransits] = useState([]);
     const [editing, setEditing] = useState(null);
     const [search, setSearch] = useState('');
-    const [filterTanggal, setFilterTanggal] = useState('');
+    // const [filterTanggal, setFilterTanggal] = useState('');
+    const [bulanDari, setBulanDari] = useState('');
+    const [bulanSampai, setBulanSampai] = useState(''); 
     const [loading, setLoading] = useState(false);
 
     // const load = async()=>{
@@ -21,7 +23,9 @@ export function useIntransits(){
             setLoading(true);
             const data = await intransitServices.getAll({
                 search: search,
-                tglsj: filterTanggal
+                // tglsj: filterTanggal
+                bulan_dari: bulanDari,     // ganti tglsj
+                bulan_sampai: bulanSampai, // tambah yang ke-2
             });
             setIntransits(data);
         } catch (err) {
@@ -29,7 +33,7 @@ export function useIntransits(){
         } finally {
             setLoading(false);
         }
-    }, [search, filterTanggal]);
+    }, [search, bulanDari,bulanSampai ]);
 
     // AUTO LOAD PAS SEARCH / TANGGAL BERUBAH
     useEffect(() => { load(); }, [load]);
@@ -151,8 +155,10 @@ export function useIntransits(){
         setEditing,        
         search,
         setSearch,
-        filterTanggal,
-        setFilterTanggal,
+        bulanDari,
+        setBulanDari,
+        bulanSampai,
+        setBulanSampai,
         loading,
         load, 
         save,

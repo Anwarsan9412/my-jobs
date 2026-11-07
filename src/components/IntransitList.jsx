@@ -1,8 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 
-const IntransitList = ({ intransits = [], onEdit, onDelete, editing,handleUpload,search, setSearch, filterTanggal, setFilterTanggal}) => {
-  // const [search, setSearch] = useState('');
-  // const [filterTanggal, setFilterTanggal] = useState(''); 
+const IntransitList = ({ intransits = [], onEdit, onDelete, editing,handleUpload,search, setSearch,bulanDari, setBulanDari,bulanSampai, setBulanSampai}) => {
   const [page, setPage] = useState(1);
   const perPage = 10;
 
@@ -30,18 +28,24 @@ const IntransitList = ({ intransits = [], onEdit, onDelete, editing,handleUpload
 // }, [search, intransits]);
 // 1. SEARCH + TANGGAL FILTER
 
-console.log(filterTanggal);
 
   const filtered = useMemo(() => {
     let data = intransits;
 
     // FILTER TANGGAL DULU
-    if (filterTanggal) {
+    if (bulanDari || bulanSampai) {
       data = data.filter(item => {
         if (!item.tglsj) return false;
         // tglsj dari backend bisa "2026-11-05T00:00:00.000Z" / "2026-11-05"
         const tglItem = String(item.tglsj).slice(0, 7);
-        return tglItem === filterTanggal;
+        // Kalau cuma isi Dari aja
+        if (bulanDari && !bulanSampai) return tglItem === bulanDari;
+
+        // Kalau cuma isi Sampai aja
+        if (!bulanDari && bulanSampai) return tglItem === bulanSampai;
+                // Kalau isi 2-2nya, pakai range
+        // "2026-10" <= "2026-11" <= "2026-11" -> true
+        return tglItem >= bulanDari && tglItem <= bulanSampai;
       });
     }
 
@@ -68,7 +72,7 @@ console.log(filterTanggal);
     }
 
     return data;
-  }, [search, filterTanggal, intransits]);
+  }, [search, bulanDari,bulanSampai, intransits]);
 
 
 
@@ -104,11 +108,17 @@ console.log(filterTanggal);
           {/* MENU TANGGAL DI SEBELAH SEARCH */}
         <input
           type="month" // <-- dari "date" jadi "month"
-          value={filterTanggal || ''}
-          onChange={(e) => setFilterTanggal(e.target.value)}
+          value={bulanDari || ''}
+          onChange={(e) => setBulanDari(e.target.value)}
           style={{ minWidth: '200px', borderRadius: '10px', border: '2.5px #9ca3af black',padding: '10px 16px',  outline: 'none' }}
         />
-        <button onClick={() => { setSearch(''); setFilterTanggal(''); }}>Reset</button>
+        <input
+          type="month" // <-- dari "date" jadi "month"
+          value={bulanSampai || ''}
+          onChange={(e) => setBulanSampai(e.target.value)}
+          style={{ minWidth: '200px', borderRadius: '10px', border: '2.5px #9ca3af black',padding: '10px 16px',  outline: 'none' }}
+        />
+        <button onClick={() => { setSearch(''); setBulanDari(''); setBulanSampai(''); }}>Reset</button>
          
         <div style={{ display: 'flex', gap: '8px' }}>
           <span style={{ background: '#f3f4f6', border: '2px #9ca3af black', borderRadius: '50px', padding: '10px 16px', fontWeight: '900', fontSize: '11px' }}>

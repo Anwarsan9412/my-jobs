@@ -12,7 +12,7 @@ import Intransit from "./components/pages/Intransit";
 
 
 export default function App() {
-  const {intransits, setIntransits,editing,setEditing,remove,save, handleUpload,handleExportExcel,search,setSearch,filterTanggal,setFilterTanggal} = useIntransits();
+  const {intransits, setIntransits,editing,setEditing,remove,save, handleUpload,handleExportExcel,search,setSearch,bulanSampai,setBulanSampai,bulanDari,setBulanDari} = useIntransits();
 
  return (
     <Routes>
@@ -36,7 +36,7 @@ export default function App() {
           handleExportExcel={handleExportExcel}
           save={save}
           remove={remove}
-          search={search} setSearch={setSearch} filterTanggal={filterTanggal} setFilterTanggal={setFilterTanggal}
+          search={search} setSearch={setSearch} bulanDari={bulanDari} setBulanDari={setBulanDari} bulanSampai={bulanSampai} setBulanSampai={setBulanSampai}
            />} />
     </Routes>
   );

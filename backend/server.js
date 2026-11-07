@@ -182,7 +182,7 @@ app.get('/api/intransits', (req, res) => {
 // });
 // backend - routes/intransit.js
 app.get('/api/intransits', async (req, res) => {
-  const { search, tglsj } = req.query;
+  const { search, tglsj,bulan_dari, bulan_sampai } = req.query;
   let sql = 'SELECT * FROM intransit WHERE 1=1';
   let params = [];
 
@@ -191,9 +191,19 @@ app.get('/api/intransits', async (req, res) => {
     params.push(`%${search}%`, `%${search}%`);
   }
 
-  if (tglsj) {
+  // if (tglsj) {
+  //   sql += ` AND DATE_FORMAT(tglsj, '%Y-%m') = ?`;
+  //   params.push(tglsj); // format yyyy-MM-dd
+  // }
+
+    // Kalau pilih 2 bulan (yang baru - RANGE)
+  if (bulan_dari && bulan_sampai) {
+    sql += ` AND DATE_FORMAT(tglsj, '%Y-%m') BETWEEN ? AND ?`;
+    params.push(bulan_dari, bulan_sampai); // "2026-10" sampai "2026-11"
+  } else if (bulan_dari && !bulan_sampai) {
+    // Kalau cuma isi Dari aja, anggap sama kayak tglsj
     sql += ` AND DATE_FORMAT(tglsj, '%Y-%m') = ?`;
-    params.push(tglsj); // format yyyy-MM-dd
+    params.push(bulan_dari);
   }
 
   sql += ' ORDER BY tglsj DESC';
